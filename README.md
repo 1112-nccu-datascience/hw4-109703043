@@ -2,7 +2,7 @@
 
 #### Name: 陳芸
 #### Student ID: 109703043
-#### ShinyApps link: [<https://yourname.shinyapps.io/NCCU_DS2023_hw4_studentID/>]
+#### ShinyApps link: [<https://nccu109703043.shinyapps.io/NCCU_DS2023_hw4_109703043/>]
 
 ## Description
 

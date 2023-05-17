@@ -1,48 +1,125 @@
 library(shiny)
+library(ggbiplot)
 library(qcc)
+library(FactoMineR)
+library(factoextra)
 
 pca_choices <- c("PC1", "PC2", "PC3", "PC4")
+data(iris)
 
-# Define UI for app that draws a histogram ----
-ui <- fluidPage(
+ui <- navbarPage("HW4-Principle Component Analysis",
+
+  tabPanel("PCA",
+
+    sidebarLayout(
+
+      sidebarPanel(
+       
+        h3("Choose how many input to do PCA:"),
+
+        sliderInput(inputId = "points_pca",
+                    label = "Number of points",
+                    min = 6,
+                    max = 150,
+                    value = 100),
+        br(),
+        h3("Choose what you wnt to see on 'PCA Result : Plot'"),
+        selectInput("xVar", "X Variable", choices = pca_choices),
+        selectInput("yVar", "Y Variable", choices = pca_choices, selected = as.factor("PC2"))
+      ),
+
+      mainPanel(
+       
+        tabsetPanel(
+          
+          tabPanel("PCA: Summary",
+                   verbatimTextOutput(outputId = "pca_summary", placeholder = TRUE),
+                   plotOutput(outputId = "pca_plot")
+          )
+        )
+      )
+    )
+  ),
   
-  # App title ----
-  titlePanel(h1("HW4-PRINCIPLE COMPONENT ANALYSIS")),
+  tabPanel("CA",
+
+    sidebarLayout(
+
+      sidebarPanel(
+       
+        h3("Choose how many input to do CA:"),
+
+        sliderInput(inputId = "points_ca",
+                    label = "Number of points",
+                    min = 6,
+                    max = 150,
+                    value = 100)
+      ),
+
+      mainPanel(
+       
+        tabsetPanel(
+           
+          tabPanel("CA: Summary",
+                   plotOutput(outputId = "ca_plot"),
+                   verbatimTextOutput(outputId = "ca_summary", placeholder = TRUE)
+          )
+        )
+      )
+    )
+  ),
   
-  # Sidebar layout with input and output definitions ----
-  sidebarLayout(
-    
-    # Sidebar panel for inputs ----
-    sidebarPanel(
-      
-      h3("choose how many input to do PCA:"),
-      
-      # Input: Slider for the number of bins ----
-      sliderInput(inputId = "points",
-                  label = "Number of points",
-                  min = 6,
-                  max = 150,
-                  value = 100),
-      br(),
-      h3("choose what you wnt to see on 'PCA Result : Plot'"),
-      selectInput("xVar", "X Variable", choices = pca_choices),
-      selectInput("yVar", "Y Variable", choices = pca_choices, selected = as.factor("PC2"))
-    ),
-    
-    # Main panel for displaying outputs ----
-    mainPanel(
-      
-      tabsetPanel(
-        
-        # Output: Histogram ----
-        tabPanel("PCA Result: Plot",
-                 plotOutput(outputId = "pca_result"),
-                 align = "center"
-        ),
-        
-        tabPanel("Pareto Chart",
-                 plotOutput(outputId = "pareto"),
-                 align = "center"
+  tabPanel("Raw Data",
+
+    sidebarLayout(
+
+      sidebarPanel(
+       
+        h3("Choose how many input to summarize raw data:"),
+
+        sliderInput(inputId = "points_raw",
+                    label = "Number of points",
+                    min = 6,
+                    max = 150,
+                    value = 100)
+      ),
+
+      mainPanel(
+       
+        tabsetPanel(
+  
+          tabPanel("Raw Data: Summary",
+                   h3("Summary of raw data:"),
+                   verbatimTextOutput(outputId = "raw_summary", placeholder = TRUE)
+          )
+        )
+      )
+    )
+  ),
+  
+  tabPanel("More...",
+
+    sidebarLayout(
+
+      sidebarPanel(
+       
+        h3("Choose how many input to use:"),
+
+        sliderInput(inputId = "points_more",
+                    label = "Number of points",
+                    min = 6,
+                    max = 150,
+                    value = 100)
+      ),
+
+      mainPanel(
+       
+        tabsetPanel(
+           
+          tabPanel("Pareto Chart",
+                   plotOutput(outputId = "pareto"),
+                   align = "center"
+          )
         )
       )
     )
@@ -60,35 +137,49 @@ server <- function(input, output) {
   # 1. It is "reactive" and therefore should be automatically
   #    re-executed when inputs (input$bins) change
   # 2. Its output type is a plot
-  output$pca_result <- renderPlot({
-    
-    # x    <- faithful$waiting
-    # bins <- seq(min(x), max(x), length.out = input$points + 1)
-    # 
-    # hist(x, breaks = bins, col = "#75AADB", border = "white",
-    #      xlab = "Waiting time to next eruption (in mins)",
-    #      main = "Histogram of waiting times")
-    
-    data(iris)
+  output$pca_plot <- renderPlot({
     # log transform
-    log.ir <- log(iris[1:input$points, 1:4])
-    ir.species <- iris[1:input$points, 5]
+    log.ir <- log(iris[1:input$points_pca, 1:4])
+    ir.species <- iris[1:input$points_pca, 5]
     # apply PCA - scale. = TRUE is highly advisable, but default is FALSE.
     ir.pca <- prcomp(log.ir, center = TRUE, scale. = TRUE)
-    library(ggbiplot)
     xVar_id <- which(pca_choices == input$xVar)
     yVar_id <- which(pca_choices == input$yVar)
     g <- ggbiplot(ir.pca, choices = cbind(xVar_id, yVar_id), obs.scale = 1, var.scale = 1, groups = ir.species)
     g <- g + scale_color_discrete(name = '')
     g <- g + theme(legend.direction = 'horizontal', legend.position = 'top')
     g
-  }, width = 600, height = 600)
+  }, height = 480, width = 480)
+  
+  output$pca_summary <- renderPrint({
+    # log transform
+    log.ir <- log(iris[1:input$points_pca, 1:4])
+    ir.species <- iris[1:input$points_pca, 5]
+    # apply PCA - scale. = TRUE is highly advisable, but default is FALSE.
+    ir.pca <- prcomp(log.ir, center = TRUE, scale. = TRUE)
+    summary(ir.pca)
+  })
+  
+  # http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/113-ca-correspondence-analysis-in-r-essentials/
+  output$ca_plot <- renderPlot({
+    res.ca <- CA(iris[1:input$points_ca, 1:4], graph = FALSE)
+    fviz_ca_biplot(res.ca, repel = FALSE)
+  })
+  
+  output$ca_summary <- renderPrint({
+    res.ca <- CA(iris[1:input$points_ca, 1:4], graph = FALSE)
+    summary(res.ca)
+  })
+  
+  output$raw_summary <- renderPrint({
+    summary(iris[1:input$points_raw,])
+  })
   
   # https://rpubs.com/dnchari/pca
   output$pareto <- renderPlot({
     # log transform
-    log.ir <- log(iris[1:input$points, 1:4])
-    ir.species <- iris[1:input$points, 5]
+    log.ir <- log(iris[1:input$points_more, 1:4])
+    ir.species <- iris[1:input$points_more, 5]
     # apply PCA - scale. = TRUE is highly advisable, but default is FALSE.
     ir.pca <- prcomp(log.ir, center = TRUE, scale. = TRUE)
     PCA <- ir.pca$sdev^2
@@ -103,18 +194,3 @@ server <- function(input, output) {
 
 # Create Shiny app ----
 shinyApp(ui = ui, server = server)
-
-
-
-
-# data(iris)
-# # log transform
-# log.ir <- log(iris[, 1:4])
-# ir.species <- iris[, 5]
-# # apply PCA - scale. = TRUE is highly advisable, but default is FALSE.
-# ir.pca <- prcomp(log.ir,center = TRUE, scale. = TRUE)
-# library(ggbiplot)
-# g <- ggbiplot(ir.pca, obs.scale = 1, var.scale = 1, groups = ir.species)
-# g <- g + scale_color_discrete(name = '')
-# g <- g + theme(legend.direction = 'horizontal', legend.position = 'top')
-# print(g)
